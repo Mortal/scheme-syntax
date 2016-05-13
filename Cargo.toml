@@ -1,0 +1,6 @@
+[package]
+name = "scheme-syntax"
+version = "0.1.0"
+authors = ["Mathias Rav <rav@cs.au.dk>"]
+
+[dependencies]
