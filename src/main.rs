@@ -54,6 +54,7 @@ impl <I> Iterator for Lexer<I> where I: Iterator<Item=char> {
                         Some(')') => break,
                         None => break,
                         Some(' ') => break,
+                        Some('\n') => break,
                         Some(c) => {
                             s.push(c);
                             self.skip();
