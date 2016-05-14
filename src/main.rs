@@ -146,7 +146,9 @@ fn main() {
 }
 
 fn parse(s: &str) -> Result<Node, &'static str> {
-    Parser::new(s.chars()).next().unwrap_or(Err("None"))
+    let chars = s.chars();
+    let mut parser = Parser::new(chars);
+    parser.next().unwrap_or(Err("None"))
 }
 
 #[test]
