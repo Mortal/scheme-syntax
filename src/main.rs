@@ -14,15 +14,15 @@ enum Node {
     List(Vec<Node>),
 }
 
-struct Lexer<I> where I: Iterator<Item=char> {
+struct IteratorLexer<I> where I: Iterator<Item=char> {
     chars: I,
     peekbuf: Option<char>,
 }
 
-impl <I> Lexer<I> where I: Iterator<Item=char> {
+impl <I> IteratorLexer<I> where I: Iterator<Item=char> {
     fn new(mut it: I) -> Self {
         let c = it.next();
-        Lexer {
+        IteratorLexer {
             chars: it,
             peekbuf: c,
         }
@@ -35,7 +35,7 @@ impl <I> Lexer<I> where I: Iterator<Item=char> {
     }
 }
 
-impl <I> Iterator for Lexer<I> where I: Iterator<Item=char> {
+impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
@@ -136,7 +136,7 @@ impl <'a, R> Iterator for CharsWrap<'a, R> where R: Read {
 fn main() {
     let mut e = None;
     let chars = CharsWrap::new(stdin().bytes(), &mut e);
-    let lexer = Lexer::new(chars);
+    let lexer = IteratorLexer::new(chars);
     let parser = Parser::new(lexer);
     for node in parser {
         match node {
@@ -148,7 +148,7 @@ fn main() {
 
 fn parse(s: &str) -> Result<Node, &'static str> {
     let chars = s.chars();
-    let lexer = Lexer::new(chars);
+    let lexer = IteratorLexer::new(chars);
     let mut parser = Parser::new(lexer);
     parser.next().unwrap_or(Err("None"))
 }
