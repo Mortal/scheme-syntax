@@ -84,6 +84,30 @@ impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
     }
 }
 
+fn parse_next<L>(lexer: &mut L) -> Option<Result<Node, &'static str>> where L: Lexer {
+    let mut stack = vec![];
+    while let Some(tok) = lexer.next() {
+        match tok {
+            Token::LParen => stack.push(vec![]),
+            Token::RParen => {
+                let c = match stack.pop() {
+                    Some(c) => c,
+                    None => return Some(Err("unmatched right parenthesis")),
+                };
+                match stack.last_mut() {
+                    None => return Some(Ok(Node::List(c))),
+                    Some(m) => m.push(Node::List(c)),
+                }
+            },
+            Token::Symbol(s) => match stack.last_mut() {
+                None => return Some(Ok(Node::Symbol(s))),
+                Some(m) => m.push(Node::Symbol(s)),
+            },
+        }
+    }
+    None
+}
+
 struct Parser<L> where L: Lexer {
     lexer: L,
 }
@@ -100,27 +124,7 @@ impl <L> Iterator for Parser<L> where L: Lexer {
     type Item = Result<Node, &'static str>;
 
     fn next(&mut self) -> Option<Result<Node, &'static str>> {
-        let mut stack = vec![];
-        while let Some(tok) = self.lexer.next() {
-            match tok {
-                Token::LParen => stack.push(vec![]),
-                Token::RParen => {
-                    let c = match stack.pop() {
-                        Some(c) => c,
-                        None => return Some(Err("unmatched right parenthesis")),
-                    };
-                    match stack.last_mut() {
-                        None => return Some(Ok(Node::List(c))),
-                        Some(m) => m.push(Node::List(c)),
-                    }
-                },
-                Token::Symbol(s) => match stack.last_mut() {
-                    None => return Some(Ok(Node::Symbol(s))),
-                    Some(m) => m.push(Node::Symbol(s)),
-                },
-            }
-        }
-        None
+        parse_next(&mut self.lexer)
     }
 }
 
