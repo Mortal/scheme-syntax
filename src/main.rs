@@ -51,6 +51,8 @@ impl <I> IteratorLexer<I> where I: Iterator<Item=char> {
         match self.peekbuf {
             Some('(') => Some(Token::LParen),
             Some(')') => Some(Token::RParen),
+            Some('[') => Some(Token::LParen),
+            Some(']') => Some(Token::RParen),
             _ => None,
         }
     }
