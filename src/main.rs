@@ -135,8 +135,8 @@ impl <'a, R> Iterator for CharsWrap<'a, R> where R: Read {
 
 fn main() {
     let mut e = None;
-    let c = CharsWrap::new(stdin().bytes(), &mut e);
-    let parser = Parser::new(c);
+    let chars = CharsWrap::new(stdin().bytes(), &mut e);
+    let parser = Parser::new(chars);
     for node in parser {
         match node {
             Ok(node) => println!("{:?}", node),
