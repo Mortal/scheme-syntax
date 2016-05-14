@@ -14,6 +14,9 @@ enum Node {
     List(Vec<Node>),
 }
 
+trait Lexer : Iterator<Item=Token> {}
+impl <I> Lexer for I where I: Iterator<Item=Token> {}
+
 struct IteratorLexer<I> where I: Iterator<Item=char> {
     chars: I,
     peekbuf: Option<char>,
@@ -67,11 +70,11 @@ impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
     }
 }
 
-struct Parser<L> where L: Iterator<Item=Token> {
+struct Parser<L> where L: Lexer {
     lexer: L,
 }
 
-impl <L> Parser<L> where L: Iterator<Item=Token> {
+impl <L> Parser<L> where L: Lexer {
     fn new(lexer: L) -> Self {
         Parser {
             lexer: lexer,
@@ -79,7 +82,7 @@ impl <L> Parser<L> where L: Iterator<Item=Token> {
     }
 }
 
-impl <L> Iterator for Parser<L> where L: Iterator<Item=Token> {
+impl <L> Iterator for Parser<L> where L: Lexer {
     type Item = Result<Node, &'static str>;
 
     fn next(&mut self) -> Option<Result<Node, &'static str>> {
