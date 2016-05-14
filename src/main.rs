@@ -36,37 +36,51 @@ impl <I> IteratorLexer<I> where I: Iterator<Item=char> {
         self.peekbuf = self.chars.next();
         c
     }
+
+    fn peekws(&self) -> bool {
+        self.peekbuf == Some(' ') || self.peekbuf == Some('\n')
+    }
+
+    fn skipws(&mut self) {
+        while self.peekws() {
+            self.skip();
+        }
+    }
+
+    fn peeksingle(&mut self) -> Option<Token> {
+        match self.peekbuf {
+            Some('(') => Some(Token::LParen),
+            Some(')') => Some(Token::RParen),
+            _ => None,
+        }
+    }
 }
 
 impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        match self.skip() {
-            Some(' ') => self.next(),
-            Some('\n') => self.next(),
-            Some('(') => Some(Token::LParen),
-            Some(')') => Some(Token::RParen),
-            None => None,
-            Some(c) => {
-                let mut s = String::new();
-                s.push(c);
-                loop {
-                    match self.peekbuf {
-                        Some('(') => break,
-                        Some(')') => break,
-                        None => break,
-                        Some(' ') => break,
-                        Some('\n') => break,
-                        Some(c) => {
-                            s.push(c);
-                            self.skip();
-                        }
-                    }
-                }
-                Some(Token::Symbol(s))
-            },
+        self.skipws();
+        if let Some(t) = self.peeksingle() {
+            self.skip();
+            return Some(t);
         }
+        let c = match self.skip() {
+            None => return None,
+            Some(c) => c,
+        };
+
+        let mut s = String::new();
+        s.push(c);
+        loop {
+            if let Some(_) = self.peeksingle() { break; }
+            if self.peekws() { break; }
+            match self.skip() {
+                Some(c) => s.push(c),
+                None => break,
+            };
+        }
+        Some(Token::Symbol(s))
     }
 }
 
