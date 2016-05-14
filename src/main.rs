@@ -67,19 +67,19 @@ impl <I> Iterator for Lexer<I> where I: Iterator<Item=char> {
     }
 }
 
-struct Parser<I> where I: Iterator<Item=char> {
-    lexer: Lexer<I>,
+struct Parser<L> where L: Iterator<Item=Token> {
+    lexer: L,
 }
 
-impl <I> Parser<I> where I: Iterator<Item=char> {
-    fn new(it: I) -> Self {
+impl <L> Parser<L> where L: Iterator<Item=Token> {
+    fn new(lexer: L) -> Self {
         Parser {
-            lexer: Lexer::new(it),
+            lexer: lexer,
         }
     }
 }
 
-impl <I> Iterator for Parser<I> where I: Iterator<Item=char> {
+impl <L> Iterator for Parser<L> where L: Iterator<Item=Token> {
     type Item = Result<Node, &'static str>;
 
     fn next(&mut self) -> Option<Result<Node, &'static str>> {
@@ -136,7 +136,8 @@ impl <'a, R> Iterator for CharsWrap<'a, R> where R: Read {
 fn main() {
     let mut e = None;
     let chars = CharsWrap::new(stdin().bytes(), &mut e);
-    let parser = Parser::new(chars);
+    let lexer = Lexer::new(chars);
+    let parser = Parser::new(lexer);
     for node in parser {
         match node {
             Ok(node) => println!("{:?}", node),
@@ -147,7 +148,8 @@ fn main() {
 
 fn parse(s: &str) -> Result<Node, &'static str> {
     let chars = s.chars();
-    let mut parser = Parser::new(chars);
+    let lexer = Lexer::new(chars);
+    let mut parser = Parser::new(lexer);
     parser.next().unwrap_or(Err("None"))
 }
 
