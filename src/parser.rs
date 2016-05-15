@@ -2,7 +2,7 @@ use lexer::{Lexer, Token};
 
 #[derive(Debug)]
 pub enum Node {
-    Symbol(String),
+    Atom(String),
     List(Vec<Node>),
 }
 
@@ -21,9 +21,9 @@ pub fn parse_next<L>(lexer: &mut L) -> Option<Result<Node, &'static str>> where 
                     Some(m) => m.push(Node::List(c)),
                 }
             },
-            Token::Symbol(s) => match stack.last_mut() {
-                None => return Some(Ok(Node::Symbol(s))),
-                Some(m) => m.push(Node::Symbol(s)),
+            Token::Atom(s) => match stack.last_mut() {
+                None => return Some(Ok(Node::Atom(s))),
+                Some(m) => m.push(Node::Atom(s)),
             },
         }
     }

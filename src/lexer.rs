@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum Token {
-    Symbol(String),
+    Atom(String),
     LParen,
     RParen,
 }
@@ -73,6 +73,6 @@ impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
                 None => break,
             };
         }
-        Some(Token::Symbol(s))
+        Some(Token::Atom(s))
     }
 }
