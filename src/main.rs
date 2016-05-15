@@ -6,16 +6,22 @@ mod parser;
 use parser::{Node, Parser};
 mod io;
 use io::CharsWrap;
+mod scheme;
+use scheme::parse_expression;
 
 fn main() {
     let mut e = None;
     let chars = CharsWrap::new(stdin().bytes(), &mut e);
     let lexer = IteratorLexer::new(chars);
     let parser = Parser::new(lexer);
-    for node in parser {
-        match node {
-            Ok(node) => println!("{:?}", node),
-            Err(s) => println!("error: {}", s),
+    for node_result in parser {
+        match node_result {
+            Err(e) => println!("error: {}", e),
+            Ok(node) =>
+                match parse_expression(node) {
+                    Err(e) => println!("error: {}", e),
+                    Ok(expr) => println!("{:?}", expr),
+                },
         }
     }
 }
