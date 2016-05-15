@@ -1,36 +1,11 @@
-use std::io;
-use std::io::{stdin, Read, Bytes};
+use std::io::{stdin, Read};
 
 mod lexer;
 use lexer::IteratorLexer;
 mod parser;
 use parser::{Node, Parser};
-
-struct CharsWrap<'a, R> where R: Read {
-    c: Bytes<R>,
-    e: &'a mut Option<io::Error>,
-}
-
-impl <'a, R> CharsWrap<'a, R> where R: Read {
-    fn new(c: Bytes<R>, e: &'a mut Option<io::Error>) -> Self {
-        CharsWrap {
-            c: c,
-            e: e,
-        }
-    }
-}
-
-impl <'a, R> Iterator for CharsWrap<'a, R> where R: Read {
-    type Item = char;
-
-    fn next(&mut self) -> Option<char> {
-        match self.c.next() {
-            Some(Ok(a)) => Some(a as char),
-            Some(Err(e)) => {*self.e = Some(e); None},
-            None => None,
-        }
-    }
-}
+mod io;
+use io::CharsWrap;
 
 fn main() {
     let mut e = None;
