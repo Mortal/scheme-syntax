@@ -15,6 +15,7 @@ pub mod syntax {
         Variable(String),
         Quote(Quotation),
         Time(Box<Expression>),
+        If(Box<Expression>, Box<Expression>, Box<Expression>),
     }
 }
 
@@ -64,6 +65,19 @@ where C: FnOnce(Box<Expression>) -> Expression {
     Ok(ctor(arg1))
 }
 
+fn ternary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+where C: FnOnce(Box<Expression>, Box<Expression>, Box<Expression>) -> Expression {
+    if tl.len() != 3 {
+        return Err(SchemeError::Basic(
+            format!("Wrong number of arguments: expected 3, got {}", tl.len())));
+    }
+    let mut tl = tl.into_iter();
+    let arg1 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    let arg2 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    let arg3 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    Ok(ctor(arg1, arg2, arg3))
+}
+
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
     match hd {
         Node::Identifier(ref keyword) =>
@@ -71,6 +85,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 Ok(Expression::Quote(try!(parse_quotation_list(tl))))
             } else if keyword == "time" {
                 unary_op(Expression::Time, tl)
+            } else if keyword == "if" {
+                ternary_op(Expression::If, tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },

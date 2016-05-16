@@ -107,4 +107,13 @@ mod tests {
         assert_eq!(expr("(time 42)"),
                    Expression::Time(Box::new(expr("42"))));
     }
+
+    #[test]
+    fn parse_if() {
+        assert_eq!(expr("(if 1 2 3)"),
+                   Expression::If(
+                       Box::new(expr("1")),
+                       Box::new(expr("2")),
+                       Box::new(expr("3"))));
+    }
 }
