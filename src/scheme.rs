@@ -15,6 +15,7 @@ pub mod syntax {
         Binding(Expression, Expression),
         Inconsequential(Expression),
     }
+    pub type CaseClause = (Vec<Quotation>, Expression);
     #[derive(Debug, PartialEq)]
     pub enum Expression {
         Literal(Literal),
@@ -27,10 +28,11 @@ pub mod syntax {
         Begin(Vec<Expression>),
         Unless(Box<Expression>, Box<Expression>),
         Cond(Vec<CondClause>, Box<Expression>),
+        Case(Vec<CaseClause>, Box<Expression>),
     }
 }
 
-use scheme::syntax::{Quotation, Expression, CondClause};
+use scheme::syntax::{Quotation, Expression, CondClause, CaseClause};
 
 #[derive(Debug)]
 pub enum SchemeError {
@@ -203,6 +205,46 @@ fn parse_cond(mut clauses: Vec<Node>) -> Result<Expression> {
     let else_clause = try!(parse_expression(
         try!(get_cond_else(else_clause))));
     Ok(Expression::Cond(res, Box::new(else_clause)))
+}
+
+fn parse_case_clause(clause: Node) -> Result<CaseClause> {
+    let mut l = match clause {
+        Node::List(l) => l,
+        _ => return Err(SchemeError::Basic(
+            "case clause: Expected list".to_string())),
+    };
+    if l.len() != 2 {
+        return Err(SchemeError::Basic(
+            format!("case clause: Expected length = 2, got {}", l.len())))
+    }
+    let expr = l.pop().unwrap();
+    let cases = match l.pop().unwrap() {
+        Node::List(l) => l,
+        _ => return Err(SchemeError::Basic(
+            "case clause cases: Expected list".to_string())),
+    };
+    let mut res = Vec::new();
+    for c in cases {
+        res.push(try!(parse_quotation(c)));
+    }
+    Ok((res, try!(parse_expression(expr))))
+}
+
+fn parse_case(mut clauses: Vec<Node>) -> Result<Expression> {
+    let n = clauses.len();
+    if n == 0 {
+        return Err(SchemeError::Basic(
+            "Wrong number of case arguments: expected at least 1, got 0"
+            .to_string()));
+    }
+    let else_clause = clauses.split_off(n-1).into_iter().next().unwrap();
+    let mut res = Vec::new();
+    for c in clauses.into_iter() {
+        res.push(try!(parse_case_clause(c)));
+    }
+    let else_clause = try!(parse_expression(
+        try!(get_cond_else(else_clause))));
+    Ok(Expression::Case(res, Box::new(else_clause)))
 }
 
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
