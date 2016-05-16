@@ -10,6 +10,12 @@ pub mod syntax {
         Cons(Box<Quotation>, Box<Quotation>),
     }
     #[derive(Debug, PartialEq)]
+    pub enum CondClause {
+        Simple(Expression, Expression),
+        Binding(Expression, Expression),
+        Inconsequential(Expression),
+    }
+    #[derive(Debug, PartialEq)]
     pub enum Expression {
         Literal(Literal),
         Variable(String),
@@ -20,10 +26,11 @@ pub mod syntax {
         Or(Vec<Expression>),
         Begin(Vec<Expression>),
         Unless(Box<Expression>, Box<Expression>),
+        Cond(Vec<CondClause>, Box<Expression>),
     }
 }
 
-use scheme::syntax::{Quotation, Expression};
+use scheme::syntax::{Quotation, Expression, CondClause};
 
 #[derive(Debug)]
 pub enum SchemeError {
@@ -109,6 +116,95 @@ where C: FnOnce(Vec<Expression>) -> Expression {
     zero_or_more_op(ctor, tl)
 }
 
+fn parse_cond_clause_inconsequential(test: Node) -> Result<CondClause> {
+    Ok(CondClause::Inconsequential(try!(parse_expression(test))))
+}
+
+fn parse_cond_clause_simple(test: Node, consequent: Node) -> Result<CondClause> {
+    Ok(CondClause::Simple(
+        try!(parse_expression(test)),
+        try!(parse_expression(consequent))))
+}
+
+fn parse_cond_clause_binding(test: Node, arrow: Node, consequent: Node) -> Result<CondClause> {
+    match arrow {
+        Node::Identifier(a) =>
+            if a != "=>" {
+                return Err(SchemeError::Basic(
+                    "cond clause: middle argument must be =>".to_string()));
+            },
+        _ => return Err(SchemeError::Basic(
+            "cond clause: middle argument must be =>".to_string())),
+    };
+    Ok(CondClause::Binding(
+        try!(parse_expression(test)),
+        try!(parse_expression(consequent))))
+}
+
+fn parse_cond_clause(clause: Node) -> Result<CondClause> {
+    let mut l = match clause {
+        Node::List(l) => l,
+        _ => return Err(SchemeError::Basic(
+            "cond clause: Expected list".to_string())),
+    };
+    if l.len() == 1 {
+        parse_cond_clause_inconsequential(l.pop().unwrap())
+    } else if l.len() == 2 {
+        let a2 = l.pop().unwrap();
+        let a1 = l.pop().unwrap();
+        parse_cond_clause_simple(a1, a2)
+    } else if l.len() == 3 {
+        let a3 = l.pop().unwrap();
+        let a2 = l.pop().unwrap();
+        let a1 = l.pop().unwrap();
+        parse_cond_clause_binding(a1, a2, a3)
+    } else {
+        Err(SchemeError::Basic(
+            format!("cond clause: Expected 1 <= length <= 3, got {}", l.len())))
+    }
+}
+
+fn get_cond_else(else_clause: Node) -> Result<Node> {
+    let mut l = match else_clause {
+        Node::List(l) => l,
+        _ => return Err(SchemeError::Basic(
+            "cond clause: Expected list".to_string())),
+    };
+    if l.len() != 2 {
+        return Err(SchemeError::Basic(
+            format!("cond else clause: Expected length 2, got {}", l.len())));
+    }
+    let a2 = l.pop().unwrap();
+    let a1 = l.pop().unwrap();
+    let else_id = match a1 {
+        Node::Identifier(id) => id,
+        _ => return Err(SchemeError::Basic(
+            "cond else clause: Expected else".to_string())),
+    };
+    if else_id != "else" {
+        return Err(SchemeError::Basic(
+            "cond else clause: Expected else".to_string()));
+    }
+    Ok(a2)
+}
+
+fn parse_cond(mut clauses: Vec<Node>) -> Result<Expression> {
+    let n = clauses.len();
+    if n == 0 {
+        return Err(SchemeError::Basic(
+            "Wrong number of cond arguments: expected at least 1, got 0"
+            .to_string()));
+    }
+    let else_clause = clauses.split_off(n-1).into_iter().next().unwrap();
+    let mut res = Vec::new();
+    for c in clauses.into_iter() {
+        res.push(try!(parse_cond_clause(c)));
+    }
+    let else_clause = try!(parse_expression(
+        try!(get_cond_else(else_clause))));
+    Ok(Expression::Cond(res, Box::new(else_clause)))
+}
+
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
     match hd {
         Node::Identifier(ref keyword) =>
@@ -126,6 +222,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 one_or_more_op(Expression::Begin, tl)
             } else if keyword == "unless" {
                 binary_op(Expression::Unless, tl)
+            } else if keyword == "cond" {
+                parse_cond(tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
