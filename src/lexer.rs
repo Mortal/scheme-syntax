@@ -59,7 +59,6 @@ impl <'t> Iterator for RegexLexer<'t> {
         };
         let (begin, end) = mo.pos(0).unwrap();
         if begin != 0 {
-            println!("begin != 0: {} {:?} {:?}", begin, self.rest, mo.at(0));
             self.rest = "";
             return Some(Err("unmatched"));
         }

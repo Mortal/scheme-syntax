@@ -37,7 +37,11 @@ where L: Lexer {
             },
         }
     }
-    None
+    if stack.len() == 0 {
+        None
+    } else {
+        Some(Err("unexpected EOF"))
+    }
 }
 
 pub struct Parser<L> where L: Lexer {
