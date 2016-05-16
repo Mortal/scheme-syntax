@@ -1,12 +1,14 @@
 #[derive(Debug)]
 pub enum Token {
-    Atom(String),
+    Identifier(String),
     LParen,
     RParen,
 }
 
-pub trait Lexer : Iterator<Item=Token> {}
-impl <I> Lexer for I where I: Iterator<Item=Token> {}
+pub type Result<T> = std::result::Result<T, &'static str>;
+
+pub trait Lexer : Iterator<Item=Result<Token>> {}
+impl <I> Lexer for I where I: Iterator<Item=Result<Token>> {}
 
 pub struct IteratorLexer<I> where I: Iterator<Item=char> {
     chars: I,
@@ -50,13 +52,13 @@ impl <I> IteratorLexer<I> where I: Iterator<Item=char> {
 }
 
 impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
-    type Item = Token;
+    type Item = Result<Token>;
 
-    fn next(&mut self) -> Option<Token> {
+    fn next(&mut self) -> Option<Result<Token>> {
         self.skipws();
         if let Some(t) = self.peeksingle() {
             self.skip();
-            return Some(t);
+            return Some(Ok(t));
         }
         let c = match self.skip() {
             None => return None,
@@ -73,6 +75,6 @@ impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
                 None => break,
             };
         }
-        Some(Token::Atom(s))
+        Some(Ok(Token::Identifier(s)))
     }
 }

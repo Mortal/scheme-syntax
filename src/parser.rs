@@ -6,9 +6,12 @@ pub enum Node {
     List(Vec<Node>),
 }
 
-pub fn parse_next<L>(lexer: &mut L) -> Option<Result<Node, &'static str>> where L: Lexer {
+pub fn parse_next<L>(lexer: &mut L) -> Option<Result<Node, &'static str>>
+where L: Lexer {
     let mut stack = vec![];
-    while let Some(tok) = lexer.next() {
+    while let Some(token_result) = lexer.next() {
+        let tok = token_result.unwrap_or_else(
+            |e| return Some(Err("lexer error")));
         match tok {
             Token::LParen => stack.push(vec![]),
             Token::RParen => {
