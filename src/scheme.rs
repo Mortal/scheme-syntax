@@ -2,14 +2,14 @@ use parser::Node;
 
 pub mod syntax {
     pub use lexer::Literal;
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub enum Quotation {
         Literal(Literal),
         Symbol(String),
         Nil,
         Cons(Box<Quotation>, Box<Quotation>),
     }
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub enum Expression {
         Literal(Literal),
         Variable(String),
