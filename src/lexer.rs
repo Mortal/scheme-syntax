@@ -1,6 +1,6 @@
 use std;
 extern crate regex;
-use self::regex::{Regex, FindCaptures};
+use self::regex::Regex;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
@@ -10,7 +10,7 @@ pub enum Literal {
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
     Identifier(String),
     LParen,
@@ -23,75 +23,6 @@ pub type Result<T> = std::result::Result<T, &'static str>;
 pub trait Lexer : Iterator<Item=Result<Token>> {}
 impl <I> Lexer for I where I: Iterator<Item=Result<Token>> {}
 
-pub struct IteratorLexer<I> where I: Iterator<Item=char> {
-    chars: I,
-    peekbuf: Option<char>,
-}
-
-impl <I> IteratorLexer<I> where I: Iterator<Item=char> {
-    pub fn new(mut it: I) -> Self {
-        let c = it.next();
-        IteratorLexer {
-            chars: it,
-            peekbuf: c,
-        }
-    }
-
-    fn skip(&mut self) -> Option<char> {
-        let c = self.peekbuf;
-        self.peekbuf = self.chars.next();
-        c
-    }
-
-    fn peekws(&self) -> bool {
-        self.peekbuf == Some(' ') || self.peekbuf == Some('\n')
-    }
-
-    fn skipws(&mut self) {
-        while self.peekws() {
-            self.skip();
-        }
-    }
-
-    fn peeksingle(&mut self) -> Option<Token> {
-        match self.peekbuf {
-            Some('(') => Some(Token::LParen),
-            Some(')') => Some(Token::RParen),
-            Some('[') => Some(Token::LParen),
-            Some(']') => Some(Token::RParen),
-            _ => None,
-        }
-    }
-}
-
-impl <I> Iterator for IteratorLexer<I> where I: Iterator<Item=char> {
-    type Item = Result<Token>;
-
-    fn next(&mut self) -> Option<Result<Token>> {
-        self.skipws();
-        if let Some(t) = self.peeksingle() {
-            self.skip();
-            return Some(Ok(t));
-        }
-        let c = match self.skip() {
-            None => return None,
-            Some(c) => c,
-        };
-
-        let mut s = String::new();
-        s.push(c);
-        loop {
-            if let Some(_) = self.peeksingle() { break; }
-            if self.peekws() { break; }
-            match self.skip() {
-                Some(c) => s.push(c),
-                None => break,
-            };
-        }
-        Some(Ok(Token::Identifier(s)))
-    }
-}
-
 pub struct RegexLexer<'t> {
     lexer_re: Regex,
     rest: &'t str,
@@ -100,15 +31,16 @@ pub struct RegexLexer<'t> {
 impl <'t> RegexLexer<'t> {
     pub fn new(text: &'t str) -> Self {
         let lexer_re = Regex::new(
-            r#"(?xi)[ \n]*
+            r#"\s*(?xi)
+               (?:
                (?P<lparen>\()|
                (?P<rparen>\))|
                (?P<identifier>[a-z!$%&*/:<=>?~_^]
                     [a-z!$%&*/:<=>?~_^0-9.+-]*)|
-               (?P<boolean>#[tf])|
+               (?P<boolean>\#[tf])|
                (?P<number>[0-9]+)|
-               (?P<character>#\\(?:newline|space|.))|
-               (?P<string>"(?:[^\\]|\\.)*")"#).unwrap();
+               (?P<character>\#\\(?:newline|space|.))|
+               (?P<string>"(?:[^\\]|\\.)*"))"#).unwrap();
 
         RegexLexer {
             lexer_re: lexer_re,
@@ -127,6 +59,8 @@ impl <'t> Iterator for RegexLexer<'t> {
         };
         let (begin, end) = mo.pos(0).unwrap();
         if begin != 0 {
+            println!("begin != 0: {} {:?} {:?}", begin, self.rest, mo.at(0));
+            self.rest = "";
             return Some(Err("unmatched"));
         }
         self.rest = &self.rest[end..];
@@ -156,6 +90,22 @@ impl <'t> Iterator for RegexLexer<'t> {
         Some(Ok(
             if groupname == "lparen" { Token::LParen }
             else if groupname == "rparen" { Token::RParen }
+            else if groupname == "identifier" {
+                Token::Identifier(value.to_string()) }
             else { Token::Literal(parse_literal(groupname, value)) }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lexer_test() {
+        let l = RegexLexer::new("(foo bar)");
+        let tokens = l.collect::<Vec<_>>();
+        println!("{:?}", tokens);
+        assert_eq!(tokens[0], Ok(Token::LParen));
+        assert_eq!(tokens[3], Ok(Token::RParen));
     }
 }

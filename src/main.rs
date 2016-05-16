@@ -1,18 +1,22 @@
-use std::io::{stdin, Read};
-
+use std::io::Read;
 mod lexer;
-use lexer::IteratorLexer;
+use lexer::RegexLexer;
 mod parser;
-use parser::{Node, Parser};
-mod io;
-use io::CharsWrap;
+use parser::Parser;
+// mod io;
+// use io::CharsWrap;
 mod scheme;
 use scheme::parse_expression;
 
+fn read_stdin() -> String {
+    let mut s = String::new();
+    std::io::stdin().read_to_string(&mut s).unwrap();
+    s
+}
+
 fn main() {
-    let mut e = None;
-    let chars = CharsWrap::new(stdin().bytes(), &mut e);
-    let lexer = IteratorLexer::new(chars);
+    let stdin = read_stdin();
+    let lexer = RegexLexer::new(&stdin);
     let parser = Parser::new(lexer);
     for node_result in parser {
         match node_result {
@@ -26,18 +30,24 @@ fn main() {
     }
 }
 
-fn parse(s: &str) -> Result<Node, &'static str> {
-    let chars = s.chars();
-    let lexer = IteratorLexer::new(chars);
-    let mut parser = Parser::new(lexer);
-    parser.next().unwrap_or(Err("None"))
-}
+#[cfg(test)]
+mod tests {
+    use parser::{Node, Parser};
+    use lexer::RegexLexer;
 
-#[test]
-fn parse_test() {
-    parse("(foo bar)").unwrap();
-    parse("foo").unwrap();
-    parse("foo )garbage").unwrap();
-    parse(")").unwrap_err();
-    parse("").unwrap_err();
+    fn parse(s: &str) -> Result<Node, &'static str> {
+        let lexer = RegexLexer::new(s);
+        let mut parser = Parser::new(lexer);
+        parser.next().unwrap_or(Err("Parser returned None"))
+    }
+
+    #[test]
+    fn parse_test() {
+        println!("{:?}", parse("(foo bar)"));
+        parse("(foo bar)").unwrap();
+        parse("foo").unwrap();
+        parse("foo )garbage").unwrap();
+        parse(")").unwrap_err();
+        parse("").unwrap_err();
+    }
 }
