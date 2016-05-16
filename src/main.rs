@@ -37,6 +37,7 @@ fn main() {
 mod tests {
     use parser::{Node, Parser};
     use lexer::RegexLexer;
+    use super::scheme::syntax::{Expression, Literal};
 
     fn parse(s: &str) -> Node {
         let lexer = RegexLexer::new(s);
@@ -44,8 +45,12 @@ mod tests {
         parser.next().unwrap().unwrap()
     }
 
+    fn expr_res(s: &str) -> super::scheme::Result<Expression> {
+        super::scheme::parse_expression(parse(s))
+    }
+
     fn expr(s: &str) -> Expression {
-        super::scheme::parse_expression(parse(s)).unwrap()
+        expr_res(s).unwrap()
     }
 
     #[test]
@@ -54,8 +59,6 @@ mod tests {
         parse("foo");
         parse("foo )garbage");
     }
-
-    use super::scheme::syntax::{Expression, Literal};
 
     #[test]
     fn number() {
