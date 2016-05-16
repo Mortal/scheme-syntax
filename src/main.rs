@@ -169,4 +169,14 @@ mod tests {
                        Box::new(expr("#t")),
                        Box::new(expr("2"))));
     }
+
+    #[test]
+    fn cond() {
+        expr("(cond (#f #t) (42) (23 => bla) (else 1))");
+    }
+
+    #[test]
+    fn case() {
+        expr("(case 42 ((23) #t) ((42) #f) (else 0))");
+    }
 }

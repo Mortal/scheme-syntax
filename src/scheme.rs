@@ -28,7 +28,7 @@ pub mod syntax {
         Begin(Vec<Expression>),
         Unless(Box<Expression>, Box<Expression>),
         Cond(Vec<CondClause>, Box<Expression>),
-        Case(Vec<CaseClause>, Box<Expression>),
+        Case(Box<Expression>, Vec<CaseClause>, Box<Expression>),
     }
 }
 
@@ -220,8 +220,9 @@ fn parse_case_clause(clause: Node) -> Result<CaseClause> {
     let expr = l.pop().unwrap();
     let cases = match l.pop().unwrap() {
         Node::List(l) => l,
-        _ => return Err(SchemeError::Basic(
-            "case clause cases: Expected list".to_string())),
+        v => return Err(SchemeError::Basic(
+            format!("case clause cases: Expected list, got {:?}",
+                    v))),
     };
     let mut res = Vec::new();
     for c in cases {
@@ -232,19 +233,21 @@ fn parse_case_clause(clause: Node) -> Result<CaseClause> {
 
 fn parse_case(mut clauses: Vec<Node>) -> Result<Expression> {
     let n = clauses.len();
-    if n == 0 {
+    if n < 2 {
         return Err(SchemeError::Basic(
-            "Wrong number of case arguments: expected at least 1, got 0"
+            "Wrong number of case arguments: expected at least 2"
             .to_string()));
     }
     let else_clause = clauses.split_off(n-1).into_iter().next().unwrap();
+    let case_clauses = clauses.split_off(1);
+    let expr = try!(parse_expression(clauses.into_iter().next().unwrap()));
     let mut res = Vec::new();
-    for c in clauses.into_iter() {
+    for c in case_clauses.into_iter() {
         res.push(try!(parse_case_clause(c)));
     }
     let else_clause = try!(parse_expression(
         try!(get_cond_else(else_clause))));
-    Ok(Expression::Case(res, Box::new(else_clause)))
+    Ok(Expression::Case(Box::new(expr), res, Box::new(else_clause)))
 }
 
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
@@ -266,6 +269,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 binary_op(Expression::Unless, tl)
             } else if keyword == "cond" {
                 parse_cond(tl)
+            } else if keyword == "case" {
+                parse_case(tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
