@@ -116,4 +116,26 @@ mod tests {
                        Box::new(expr("2")),
                        Box::new(expr("3"))));
     }
+
+    #[test]
+    fn parse_and_0() {
+        assert_eq!(expr("(and)"),
+                   Expression::And(Vec::new()));
+    }
+
+    #[test]
+    fn parse_and_1() {
+        assert_eq!(expr("(and #t)"),
+                   Expression::And(vec![expr("#t")]));
+    }
+
+    #[test]
+    fn parse_and_3() {
+        assert_eq!(expr("(and #t #t #f)"),
+                   Expression::And(vec![
+                       expr("#t"),
+                       expr("#t"),
+                       expr("#f"),
+                   ]));
+    }
 }

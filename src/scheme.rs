@@ -16,6 +16,7 @@ pub mod syntax {
         Quote(Quotation),
         Time(Box<Expression>),
         If(Box<Expression>, Box<Expression>, Box<Expression>),
+        And(Vec<Expression>),
     }
 }
 
@@ -78,6 +79,15 @@ where C: FnOnce(Box<Expression>, Box<Expression>, Box<Expression>) -> Expression
     Ok(ctor(arg1, arg2, arg3))
 }
 
+fn zero_or_more_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+where C: FnOnce(Vec<Expression>) -> Expression {
+    let mut args = Vec::new();
+    for n in tl.into_iter() {
+        args.push(try!(parse_expression(n)));
+    }
+    Ok(ctor(args))
+}
+
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
     match hd {
         Node::Identifier(ref keyword) =>
@@ -87,6 +97,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 unary_op(Expression::Time, tl)
             } else if keyword == "if" {
                 ternary_op(Expression::If, tl)
+            } else if keyword == "and" {
+                zero_or_more_op(Expression::And, tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
