@@ -96,4 +96,9 @@ mod tests {
     fn strings() {
         assert_eq!(expr("\"a\\nb\\tc\""), Expression::Literal(Literal::String("a\nb\tc".to_string())));
     }
+
+    #[test]
+    fn var() {
+        assert_eq!(expr("foobar"), Expression::Variable("foobar".to_string()));
+    }
 }
