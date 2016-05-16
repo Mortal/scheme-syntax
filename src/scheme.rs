@@ -17,6 +17,7 @@ pub mod syntax {
         Time(Box<Expression>),
         If(Box<Expression>, Box<Expression>, Box<Expression>),
         And(Vec<Expression>),
+        Or(Vec<Expression>),
     }
 }
 
@@ -99,6 +100,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 ternary_op(Expression::If, tl)
             } else if keyword == "and" {
                 zero_or_more_op(Expression::And, tl)
+            } else if keyword == "or" {
+                zero_or_more_op(Expression::Or, tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },

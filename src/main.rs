@@ -138,4 +138,13 @@ mod tests {
                        expr("#f"),
                    ]));
     }
+
+    #[test]
+    fn parse_or_2() {
+        assert_eq!(expr("(or #t #f)"),
+                   Expression::Or(vec![
+                       expr("#t"),
+                       expr("#f"),
+                   ]));
+    }
 }
