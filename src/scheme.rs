@@ -58,39 +58,36 @@ fn parse_quotation_list(mut e: Vec<Node>) -> Result<Quotation> {
         Box::new(try!(parse_quotation_list(tl)))))
 }
 
-fn unary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+fn unary_op<C>(ctor: C, mut tl: Vec<Node>) -> Result<Expression>
 where C: FnOnce(Box<Expression>) -> Expression {
     if tl.len() != 1 {
         return Err(SchemeError::Basic(
             format!("Wrong number of arguments: expected 1, got {}", tl.len())));
     }
-    let mut tl = tl.into_iter();
-    let arg1 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    let arg1 = Box::new(try!(parse_expression(tl.pop().unwrap())));
     Ok(ctor(arg1))
 }
 
-fn binary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+fn binary_op<C>(ctor: C, mut tl: Vec<Node>) -> Result<Expression>
 where C: FnOnce(Box<Expression>, Box<Expression>) -> Expression {
     if tl.len() != 2 {
         return Err(SchemeError::Basic(
             format!("Wrong number of arguments: expected 2, got {}", tl.len())));
     }
-    let mut tl = tl.into_iter();
-    let arg1 = Box::new(try!(parse_expression(tl.next().unwrap())));
-    let arg2 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    let arg2 = Box::new(try!(parse_expression(tl.pop().unwrap())));
+    let arg1 = Box::new(try!(parse_expression(tl.pop().unwrap())));
     Ok(ctor(arg1, arg2))
 }
 
-fn ternary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+fn ternary_op<C>(ctor: C, mut tl: Vec<Node>) -> Result<Expression>
 where C: FnOnce(Box<Expression>, Box<Expression>, Box<Expression>) -> Expression {
     if tl.len() != 3 {
         return Err(SchemeError::Basic(
             format!("Wrong number of arguments: expected 3, got {}", tl.len())));
     }
-    let mut tl = tl.into_iter();
-    let arg1 = Box::new(try!(parse_expression(tl.next().unwrap())));
-    let arg2 = Box::new(try!(parse_expression(tl.next().unwrap())));
-    let arg3 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    let arg3 = Box::new(try!(parse_expression(tl.pop().unwrap())));
+    let arg2 = Box::new(try!(parse_expression(tl.pop().unwrap())));
+    let arg1 = Box::new(try!(parse_expression(tl.pop().unwrap())));
     Ok(ctor(arg1, arg2, arg3))
 }
 
