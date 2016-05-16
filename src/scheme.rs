@@ -45,14 +45,12 @@ use std;
 pub type Result<T> = std::result::Result<T, SchemeError>;
 
 fn parse_literal(s: &str) -> Result<Literal> {
-    s.parse::<i32>()
-    .map(|n| Literal::Number(n))
-    .map_err(|e| SchemeError::ParseIntError(e))
+    s.parse::<i32>().map(Literal::Number)
+    .map_err(SchemeError::ParseIntError)
 }
 
 fn parse_literal_expression(s: &str) -> Result<Expression> {
-    parse_literal(s).map(
-        |l| Expression::Literal(l))
+    parse_literal(s).map(Expression::Literal)
 }
 
 fn parse_variable(s: String) -> Result<Expression> {
@@ -61,8 +59,7 @@ fn parse_variable(s: String) -> Result<Expression> {
 
 fn parse_quotation(e: &Node) -> Result<Quotation> {
     match e {
-        &Node::Atom(ref s) => parse_literal(&s).map(
-            |l| Quotation::Literal(l)),
+        &Node::Atom(ref s) => parse_literal(&s).map(Quotation::Literal),
         &Node::List(ref s) => parse_quotation_list(&s[..]),
     }
 }
