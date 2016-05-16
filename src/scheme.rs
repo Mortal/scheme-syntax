@@ -18,6 +18,7 @@ pub mod syntax {
         If(Box<Expression>, Box<Expression>, Box<Expression>),
         And(Vec<Expression>),
         Or(Vec<Expression>),
+        Begin(Vec<Expression>),
     }
 }
 
@@ -89,6 +90,15 @@ where C: FnOnce(Vec<Expression>) -> Expression {
     Ok(ctor(args))
 }
 
+fn one_or_more_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+where C: FnOnce(Vec<Expression>) -> Expression {
+    if tl.len() == 0 {
+        return Err(SchemeError::Basic(
+            "Wrong number of arguments: expected at least 1, got 0".to_string()));
+    }
+    zero_or_more_op(ctor, tl)
+}
+
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
     match hd {
         Node::Identifier(ref keyword) =>
@@ -102,6 +112,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 zero_or_more_op(Expression::And, tl)
             } else if keyword == "or" {
                 zero_or_more_op(Expression::Or, tl)
+            } else if keyword == "begin" {
+                one_or_more_op(Expression::Begin, tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },

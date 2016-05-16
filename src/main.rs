@@ -150,4 +150,15 @@ mod tests {
                        expr("#f"),
                    ]));
     }
+
+    #[test]
+    fn parse_begin_0() {
+        expr_res("(begin)").unwrap_err();
+    }
+
+    #[test]
+    fn begin_1() {
+        assert_eq!(expr("(begin 2)"),
+                   Expression::Begin(vec![expr("2")]));
+    }
 }
