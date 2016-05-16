@@ -1,13 +1,7 @@
 use parser::Node;
 
 pub mod syntax {
-    #[derive(Debug, PartialEq)]
-    pub enum Literal {
-        Number(i32),
-        Boolean(bool),
-        Character(char),
-        String(String),
-    }
+    pub use lexer::Literal;
     #[derive(Debug)]
     pub enum Quotation {
         Literal(Literal),
@@ -82,7 +76,8 @@ fn parse_variable(s: String) -> Result<Expression> {
 
 fn parse_quotation(e: &Node) -> Result<Quotation> {
     match e {
-        &Node::Atom(ref s) => parse_literal(&s).map(Quotation::Literal),
+        &Node::Identifier(ref s) => Ok(Quotation::Symbol(s.clone())),
+        &Node::Literal(ref l) => Ok(Quotation::Literal(l.clone())),
         &Node::List(ref s) => parse_quotation_list(&s[..]),
     }
 }
@@ -97,23 +92,23 @@ fn parse_quotation_list(e: &[Node]) -> Result<Quotation> {
 
 fn parse_expression_from_list(hd: &Node, tl: &[Node]) -> Result<Expression> {
     match hd {
-        &Node::Atom(ref keyword) =>
+        &Node::Identifier(ref keyword) =>
             if keyword == "quote" {
                 Ok(Expression::Quote(try!(parse_quotation_list(tl))))
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
+        &Node::Literal(_) =>
+            Err(SchemeError::Basic("Cannot apply to literal".to_string())),
         &Node::List(_) =>
-            Err(SchemeError::Basic("Application not implemented".to_string()))
+            Err(SchemeError::Basic("Application not implemented".to_string())),
     }
 }
 
 pub fn parse_expression(n: Node) -> Result<Expression> {
     match n {
-        Node::Atom(s) =>
-            parse_literal_expression(&s)
-            .or(parse_variable(s))
-            .or(Err(SchemeError::Basic("Invalid atom".to_string()))),
+        Node::Literal(l) => Ok(Expression::Literal(l)),
+        Node::Identifier(s) => Ok(Expression::Variable(s)), // TODO check reserved
         Node::List(s) =>
             match s.split_first() {
                 None => Err(SchemeError::Basic("Unexpected Nil".to_string())),
