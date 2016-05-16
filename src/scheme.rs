@@ -1,7 +1,7 @@
 use parser::Node;
 
 pub mod syntax {
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub enum Literal {
         Number(i32),
         Boolean(bool),
@@ -44,9 +44,32 @@ impl std::fmt::Display for SchemeError {
 use std;
 pub type Result<T> = std::result::Result<T, SchemeError>;
 
-fn parse_literal(s: &str) -> Result<Literal> {
+fn parse_number_literal(s: &str) -> Result<Literal> {
     s.parse::<i32>().map(Literal::Number)
     .map_err(SchemeError::ParseIntError)
+}
+
+fn parse_boolean_literal(s: &str) -> Result<Literal> {
+    Ok(Literal::Boolean(
+        if s == "#t" {true} else if s == "#f" {false}
+        else {return Err(SchemeError::Basic("Not a boolean".to_string()));}
+    ))
+}
+
+fn parse_character_literal(s: &str) -> Result<Literal> {
+    Err(SchemeError::Basic("Not implemented".to_string()))
+}
+
+fn parse_string_literal(s: &str) -> Result<Literal> {
+    Err(SchemeError::Basic("Not implemented".to_string()))
+}
+
+fn parse_literal(s: &str) -> Result<Literal> {
+    parse_number_literal(s)
+    .or(parse_boolean_literal(s))
+    .or(parse_character_literal(s))
+    .or(parse_string_literal(s))
+    .or(Err(SchemeError::Basic("invalid literal".to_string())))
 }
 
 fn parse_literal_expression(s: &str) -> Result<Expression> {
@@ -96,5 +119,20 @@ pub fn parse_expression(n: Node) -> Result<Expression> {
                 None => Err(SchemeError::Basic("Unexpected Nil".to_string())),
                 Some((hd, tl)) => parse_expression_from_list(hd, tl),
             },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_literal;
+    use super::syntax::*;
+
+    #[test]
+    fn parse_literal_1() {
+        assert_eq!(parse_literal("42").unwrap(), Literal::Number(42));
+    }
+    #[test]
+    fn parse_literal_2() {
+        assert_eq!(parse_literal("#t").unwrap(), Literal::Boolean(true));
     }
 }
