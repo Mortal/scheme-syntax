@@ -70,8 +70,27 @@ impl <'t> Iterator for RegexLexer<'t> {
                 None => None,
             }).next().unwrap();
 
-        fn parse_literal(groupname: &str, value: &str) -> Literal {
-            if groupname == "number" {
+        fn weed_string(s: String) -> Result<String> {
+            let mut r = String::new();
+            let mut bs = false;
+            for c in s[1..s.len()-1].chars() {
+                if bs {
+                    if c == '\\' { r.push('\\'); }
+                    else if c == 'n' { r.push('\n'); }
+                    else if c == 't' { r.push('\t'); }
+                    else { return Err("Bad string escape"); }
+                    bs = false;
+                } else if c == '\\' {
+                    bs = true;
+                } else {
+                    r.push(c);
+                }
+            }
+            Ok(r)
+        }
+
+        fn parse_literal(groupname: &str, value: &str) -> Result<Literal> {
+            Ok(if groupname == "number" {
                 Literal::Number(value.parse::<i32>().unwrap())
             } else if groupname == "boolean" {
                 if value == "#t" { Literal::Boolean(true) }
@@ -82,8 +101,8 @@ impl <'t> Iterator for RegexLexer<'t> {
                 else if value == "#\\space" { Literal::Character(' ') }
                 else { Literal::Character(value.chars().nth(2).unwrap()) }
             } else if groupname == "string" {
-                Literal::String(value.to_string())
-            } else { panic!("unknown match group {}", groupname) }
+                Literal::String(try!(weed_string(value.to_string())))
+            } else { panic!("unknown match group {}", groupname) })
         }
 
         Some(Ok(
@@ -91,7 +110,12 @@ impl <'t> Iterator for RegexLexer<'t> {
             else if groupname == "rparen" { Token::RParen }
             else if groupname == "identifier" {
                 Token::Identifier(value.to_string()) }
-            else { Token::Literal(parse_literal(groupname, value)) }))
+            else {
+                match parse_literal(groupname, value) {
+                    Ok(v) => Token::Literal(v),
+                    Err(e) => return Some(Err(e)),
+                }
+            }))
     }
 }
 
