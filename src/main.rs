@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::BufRead;
 mod lexer;
 use lexer::RegexLexer;
 mod parser;
@@ -8,24 +8,27 @@ use parser::Parser;
 mod scheme;
 use scheme::parse_expression;
 
-fn read_stdin() -> String {
-    let mut s = String::new();
-    std::io::stdin().read_to_string(&mut s).unwrap();
-    s
-}
+// fn read_stdin() -> String {
+//     let mut s = String::new();
+//     std::io::stdin().read_to_string(&mut s).unwrap();
+//     s
+// }
 
 fn main() {
-    let stdin = read_stdin();
-    let lexer = RegexLexer::new(&stdin);
-    let parser = Parser::new(lexer);
-    for node_result in parser {
-        match node_result {
-            Err(e) => println!("error: {}", e),
-            Ok(node) =>
-                match parse_expression(node) {
-                    Err(e) => println!("error: {}", e),
-                    Ok(expr) => println!("{:?}", expr),
-                },
+    let stdin = std::io::stdin();
+    for line_result in stdin.lock().lines() {
+        let line = line_result.unwrap();
+        let lexer = RegexLexer::new(&line);
+        let parser = Parser::new(lexer);
+        for node_result in parser {
+            match node_result {
+                Err(e) => println!("error: {}", e),
+                Ok(node) =>
+                    match parse_expression(node) {
+                        Err(e) => println!("error: {}", e),
+                        Ok(expr) => println!("{:?}", expr),
+                    },
+            }
         }
     }
 }
