@@ -161,4 +161,12 @@ mod tests {
         assert_eq!(expr("(begin 2)"),
                    Expression::Begin(vec![expr("2")]));
     }
+
+    #[test]
+    fn unless() {
+        assert_eq!(expr("(unless #t 2)"),
+                   Expression::Unless(
+                       Box::new(expr("#t")),
+                       Box::new(expr("2"))));
+    }
 }

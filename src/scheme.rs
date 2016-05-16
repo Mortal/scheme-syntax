@@ -19,6 +19,7 @@ pub mod syntax {
         And(Vec<Expression>),
         Or(Vec<Expression>),
         Begin(Vec<Expression>),
+        Unless(Box<Expression>, Box<Expression>),
     }
 }
 
@@ -68,6 +69,18 @@ where C: FnOnce(Box<Expression>) -> Expression {
     Ok(ctor(arg1))
 }
 
+fn binary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+where C: FnOnce(Box<Expression>, Box<Expression>) -> Expression {
+    if tl.len() != 2 {
+        return Err(SchemeError::Basic(
+            format!("Wrong number of arguments: expected 2, got {}", tl.len())));
+    }
+    let mut tl = tl.into_iter();
+    let arg1 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    let arg2 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    Ok(ctor(arg1, arg2))
+}
+
 fn ternary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
 where C: FnOnce(Box<Expression>, Box<Expression>, Box<Expression>) -> Expression {
     if tl.len() != 3 {
@@ -114,6 +127,8 @@ fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
                 zero_or_more_op(Expression::Or, tl)
             } else if keyword == "begin" {
                 one_or_more_op(Expression::Begin, tl)
+            } else if keyword == "unless" {
+                binary_op(Expression::Unless, tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
