@@ -1,6 +1,7 @@
 use std;
 extern crate regex;
 use self::regex::Regex;
+use std::ascii::AsciiExt;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
@@ -97,8 +98,8 @@ impl <'t> Iterator for RegexLexer<'t> {
                 else if value == "#f" { Literal::Boolean(false) }
                 else { panic!("unknown boolean {}", value) }
             } else if groupname == "character" {
-                if value == "#\\newline" { Literal::Character('\n') }
-                else if value == "#\\space" { Literal::Character(' ') }
+                if value.eq_ignore_ascii_case("#\\newline") { Literal::Character('\n') }
+                else if value.eq_ignore_ascii_case("#\\space") { Literal::Character(' ') }
                 else { Literal::Character(value.chars().nth(2).unwrap()) }
             } else if groupname == "string" {
                 Literal::String(try!(weed_string(value.to_string())))
