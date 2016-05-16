@@ -101,4 +101,10 @@ mod tests {
     fn var() {
         assert_eq!(expr("foobar"), Expression::Variable("foobar".to_string()));
     }
+
+    #[test]
+    fn time() {
+        assert_eq!(expr("(time 42)"),
+                   Expression::Time(Box::new(expr("42"))));
+    }
 }

@@ -14,6 +14,7 @@ pub mod syntax {
         Literal(Literal),
         Variable(String),
         Quote(Quotation),
+        Time(Box<Expression>),
     }
 }
 
@@ -52,11 +53,24 @@ fn parse_quotation_list(mut e: Vec<Node>) -> Result<Quotation> {
         Box::new(try!(parse_quotation_list(tl)))))
 }
 
+fn unary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
+where C: FnOnce(Box<Expression>) -> Expression {
+    let mut tl = tl.into_iter();
+    let arg = match tl.next() {
+        Some(a) => a,
+        None => return Err(SchemeError::Basic(
+            "Wrong number of arguments: expected 1, got 0".to_string())),
+    };
+    Ok(ctor(Box::new(try!(parse_expression(arg)))))
+}
+
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
     match hd {
         Node::Identifier(ref keyword) =>
             if keyword == "quote" {
                 Ok(Expression::Quote(try!(parse_quotation_list(tl))))
+            } else if keyword == "time" {
+                unary_op(Expression::Time, tl)
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
