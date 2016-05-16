@@ -55,13 +55,13 @@ fn parse_quotation_list(mut e: Vec<Node>) -> Result<Quotation> {
 
 fn unary_op<C>(ctor: C, tl: Vec<Node>) -> Result<Expression>
 where C: FnOnce(Box<Expression>) -> Expression {
+    if tl.len() != 1 {
+        return Err(SchemeError::Basic(
+            format!("Wrong number of arguments: expected 1, got {}", tl.len())));
+    }
     let mut tl = tl.into_iter();
-    let arg = match tl.next() {
-        Some(a) => a,
-        None => return Err(SchemeError::Basic(
-            "Wrong number of arguments: expected 1, got 0".to_string())),
-    };
-    Ok(ctor(Box::new(try!(parse_expression(arg)))))
+    let arg1 = Box::new(try!(parse_expression(tl.next().unwrap())));
+    Ok(ctor(arg1))
 }
 
 fn parse_expression_from_list(hd: Node, tl: Vec<Node>) -> Result<Expression> {
