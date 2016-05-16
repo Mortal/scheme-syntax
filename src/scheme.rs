@@ -24,6 +24,7 @@ pub mod syntax {
 }
 
 use std::num::ParseIntError;
+use scheme::syntax::{Literal, Quotation, Expression};
 
 #[derive(Debug)]
 pub enum SchemeError {
@@ -43,42 +44,42 @@ impl std::fmt::Display for SchemeError {
 use std;
 pub type Result<T> = std::result::Result<T, SchemeError>;
 
-fn parse_literal(s: &str) -> Result<syntax::Literal> {
+fn parse_literal(s: &str) -> Result<Literal> {
     s.parse::<i32>()
-    .map(|n| syntax::Literal::Number(n))
+    .map(|n| Literal::Number(n))
     .map_err(|e| SchemeError::ParseIntError(e))
 }
 
-fn parse_literal_expression(s: &str) -> Result<syntax::Expression> {
+fn parse_literal_expression(s: &str) -> Result<Expression> {
     parse_literal(s).map(
-        |l| syntax::Expression::Literal(l))
+        |l| Expression::Literal(l))
 }
 
-fn parse_variable(s: String) -> Result<syntax::Expression> {
-    Ok(syntax::Expression::Variable(s))
+fn parse_variable(s: String) -> Result<Expression> {
+    Ok(Expression::Variable(s))
 }
 
-fn parse_quotation(e: &Node) -> Result<syntax::Quotation> {
+fn parse_quotation(e: &Node) -> Result<Quotation> {
     match e {
         &Node::Atom(ref s) => parse_literal(&s).map(
-            |l| syntax::Quotation::Literal(l)),
+            |l| Quotation::Literal(l)),
         &Node::List(ref s) => parse_quotation_list(&s[..]),
     }
 }
 
-fn parse_quotation_list(e: &[Node]) -> Result<syntax::Quotation> {
+fn parse_quotation_list(e: &[Node]) -> Result<Quotation> {
     match e.split_first() {
-        None => Ok(syntax::Quotation::Nil),
-        Some((hd, tl)) => Ok(syntax::Quotation::Cons(
+        None => Ok(Quotation::Nil),
+        Some((hd, tl)) => Ok(Quotation::Cons(
             Box::new(try!(parse_quotation(hd))), Box::new(try!(parse_quotation_list(tl))))),
     }
 }
 
-fn parse_expression_from_list(hd: &Node, tl: &[Node]) -> Result<syntax::Expression> {
+fn parse_expression_from_list(hd: &Node, tl: &[Node]) -> Result<Expression> {
     match hd {
         &Node::Atom(ref keyword) =>
             if keyword == "quote" {
-                Ok(syntax::Expression::Quote(try!(parse_quotation_list(tl))))
+                Ok(Expression::Quote(try!(parse_quotation_list(tl))))
             } else {
                 Err(SchemeError::Basic(format!("unhandled keyword {}", keyword)))
             },
@@ -87,7 +88,7 @@ fn parse_expression_from_list(hd: &Node, tl: &[Node]) -> Result<syntax::Expressi
     }
 }
 
-pub fn parse_expression(n: Node) -> Result<syntax::Expression> {
+pub fn parse_expression(n: Node) -> Result<Expression> {
     match n {
         Node::Atom(s) =>
             parse_literal_expression(&s)
